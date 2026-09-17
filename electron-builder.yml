@@ -1,0 +1,65 @@
+appId: com.zigplan.app
+productName: Zigplan
+copyright: Copyright © 2026 Zetahive Technologies Private Limited
+directories:
+  buildResources: build
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!scripts/*'
+  - '!.github/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md,RELEASE_NOTES.md,LICENSE}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+asarUnpack:
+  - resources/**
+  - node_modules/leveldown/**
+win:
+  icon: build/icon.ico
+  executableName: zigplan
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  artifactName: Zigplan-${version}-win-${arch}-setup.${ext}
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  createDesktopShortcut: always
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  icon: build/icon.icns
+  category: public.app-category.business
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    - NSDocumentsFolderUsageDescription: Zigplan stores project files and takeoff drawings on this Mac.
+    - NSDownloadsFolderUsageDescription: Zigplan can save exported files to Downloads.
+  notarize: false
+  target:
+    - target: dmg
+      arch:
+        - universal
+    - target: zip
+      arch:
+        - universal
+dmg:
+  artifactName: Zigplan-${version}-mac-${arch}.${ext}
+linux:
+  icon: build/icon.png
+  target:
+    - AppImage
+    - deb
+  maintainer: Zetahive Technologies Private Limited <support@zigplan.com>
+  category: Office
+  synopsis: Free open source construction takeoff and quantity estimation
+appImage:
+  artifactName: Zigplan-${version}-linux-${arch}.${ext}
+deb:
+  artifactName: Zigplan-${version}-linux-${arch}.${ext}
+npmRebuild: false
+publish:
+  provider: github
+  owner: zetahiveco
+  repo: zigplan-oss
