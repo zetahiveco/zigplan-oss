@@ -12,8 +12,8 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { IconButton } from '@/components/icon-button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -93,17 +93,15 @@ function TakeoffToolButton({
   children: ReactNode
 }): React.JSX.Element {
   return (
-    <Tooltip>
-      <TooltipTrigger
-        delay={300}
-        render={
-          <Button type="button" size="icon-sm" variant={active ? 'default' : 'outline'} onClick={onClick} />
-        }
-      >
-        {children}
-      </TooltipTrigger>
-      <TooltipContent side="bottom">{label}</TooltipContent>
-    </Tooltip>
+    <IconButton
+      tooltip={label}
+      tooltipSide="bottom"
+      size="icon-sm"
+      variant={active ? 'default' : 'outline'}
+      onClick={onClick}
+    >
+      {children}
+    </IconButton>
   )
 }
 
@@ -814,9 +812,9 @@ export function TakeoffPage(): React.JSX.Element {
                     : 'Pan, draw, count, find text, snip-search symbols, or measure with the ruler'
 
   return (
-    <div className="flex h-full min-h-0">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 border-b">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 px-3 py-2">
           <TakeoffToolButton
             label="Pan"
             active={activeTool === 'pan' && !rulerMode}
@@ -951,41 +949,7 @@ export function TakeoffPage(): React.JSX.Element {
           ) : null}
           <span className="text-xs text-muted-foreground">{toolHint}</span>
         </div>
-        <TakeoffDocumentWorkspace
-          documentUrl={selectedDocument?.url ?? null}
-          fileName={selectedSheet?.label ?? selectedDocument?.fileName ?? ''}
-          fileType={selectedDocument?.fileType ?? ''}
-          pageNumber={selectedSheet?.pageNumber ?? 1}
-          panEnabled={activeTool === 'pan' && !rulerMode}
-          pathToolActive={activeTool === 'path'}
-          rectangleToolActive={activeTool === 'rectangle'}
-          countMarkToolActive={activeTool === 'count'}
-          countMarks={countMarks}
-          itemCountMarks={itemCountMarksForOverlay}
-          onAppendCountMark={(mark) => setCountMarks((prev) => [...prev, mark])}
-          countToolActive={activeTool === 'snip'}
-          onCountSearchRect={(rect) => void handleCountSearchRect(rect)}
-          countHighlightRects={countRects}
-          rulerMode={rulerMode}
-          onRulerLineComplete={handleRulerLineComplete}
-          documentScale={selectedDocumentScale}
-          findToolActive={activeTool === 'find'}
-          findQuery={findQuery}
-          onFindSearchStateChange={handleFindSearchStateChange}
-          onDocumentAspectChange={handleDocumentAspectChange}
-          onPdfPageCount={handlePdfPageCount}
-          draftPaths={draftPaths}
-          itemPathsForOverlay={itemPathsForOverlay}
-          selectedPathKeys={selectedPathKeys}
-          onTogglePathKey={toggleSelectedPathKey}
-          onClearPathSelection={() => setSelectedPathKeys(new Set())}
-          onSelectSinglePathKey={(key) => setSelectedPathKeys(new Set([key]))}
-          onAppendDraft={(draft) => setDraftPaths((prev) => [...prev, draft])}
-          onCommitPathMove={(key, pts) => void handleCommitPathMove(key, pts)}
-        />
-      </div>
-      <aside className="flex w-80 shrink-0 flex-col border-l">
-        <div className="flex items-center justify-between border-b px-3 py-2">
+        <div className="flex w-80 shrink-0 items-center justify-between border-l px-3 py-2">
           <div>
             <p className="text-sm font-semibold">Groups / Items</p>
             <p className="text-xs text-muted-foreground">
@@ -1004,7 +968,44 @@ export function TakeoffPage(): React.JSX.Element {
             Group
           </Button>
         </div>
-        <ScrollArea className="flex-1">
+      </div>
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TakeoffDocumentWorkspace
+            documentUrl={selectedDocument?.url ?? null}
+            fileName={selectedSheet?.label ?? selectedDocument?.fileName ?? ''}
+            fileType={selectedDocument?.fileType ?? ''}
+            pageNumber={selectedSheet?.pageNumber ?? 1}
+            panEnabled={activeTool === 'pan' && !rulerMode}
+            pathToolActive={activeTool === 'path'}
+            rectangleToolActive={activeTool === 'rectangle'}
+            countMarkToolActive={activeTool === 'count'}
+            countMarks={countMarks}
+            itemCountMarks={itemCountMarksForOverlay}
+            onAppendCountMark={(mark) => setCountMarks((prev) => [...prev, mark])}
+            countToolActive={activeTool === 'snip'}
+            onCountSearchRect={(rect) => void handleCountSearchRect(rect)}
+            countHighlightRects={countRects}
+            rulerMode={rulerMode}
+            onRulerLineComplete={handleRulerLineComplete}
+            documentScale={selectedDocumentScale}
+            findToolActive={activeTool === 'find'}
+            findQuery={findQuery}
+            onFindSearchStateChange={handleFindSearchStateChange}
+            onDocumentAspectChange={handleDocumentAspectChange}
+            onPdfPageCount={handlePdfPageCount}
+            draftPaths={draftPaths}
+            itemPathsForOverlay={itemPathsForOverlay}
+            selectedPathKeys={selectedPathKeys}
+            onTogglePathKey={toggleSelectedPathKey}
+            onClearPathSelection={() => setSelectedPathKeys(new Set())}
+            onSelectSinglePathKey={(key) => setSelectedPathKeys(new Set([key]))}
+            onAppendDraft={(draft) => setDraftPaths((prev) => [...prev, draft])}
+            onCommitPathMove={(key, pts) => void handleCommitPathMove(key, pts)}
+          />
+        </div>
+        <aside className="flex w-80 shrink-0 flex-col border-l">
+          <ScrollArea className="flex-1">
           <div className="space-y-3 p-3">
             {groups.length === 0 ? (
               <p className="text-sm text-muted-foreground">Add a group, then items. Draw on the sheet and assign the path.</p>
@@ -1014,20 +1015,18 @@ export function TakeoffPage(): React.JSX.Element {
                 <div className="flex items-center justify-between gap-2 px-3 py-2">
                   <p className="truncate text-sm font-medium">{group.name}</p>
                   <div className="flex items-center gap-1">
-                    <Button type="button" size="icon-xs" variant="ghost" onClick={() => setAddItemGroupId(group.id)}>
+                    <IconButton tooltip="Add item" onClick={() => setAddItemGroupId(group.id)}>
                       <Plus />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon-xs"
-                      variant="ghost"
+                    </IconButton>
+                    <IconButton
+                      tooltip="Delete group"
                       onClick={() => {
                         if (!projectId) return
                         void desktopApi().takeoff.removeGroup(group.id).then(() => load(projectId))
                       }}
                     >
                       <Trash2 />
-                    </Button>
+                    </IconButton>
                   </div>
                 </div>
                 {group.items.map((item) => {
@@ -1045,6 +1044,7 @@ export function TakeoffPage(): React.JSX.Element {
                             <Label className="text-xs text-muted-foreground">Item name</Label>
                             <Input
                               value={editingItemDraft.name}
+                              placeholder="e.g. Concrete slab"
                               onChange={(e) => setEditingItemDraft((prev) => ({ ...prev, name: e.target.value }))}
                             />
                           </div>
@@ -1053,6 +1053,7 @@ export function TakeoffPage(): React.JSX.Element {
                               <Label className="text-xs text-muted-foreground">Quantity</Label>
                               <Input
                                 value={editingItemDraft.quantity}
+                                placeholder="0"
                                 onChange={(e) => setEditingItemDraft((prev) => ({ ...prev, quantity: e.target.value }))}
                               />
                             </div>
@@ -1068,6 +1069,7 @@ export function TakeoffPage(): React.JSX.Element {
                               <Label className="text-xs text-muted-foreground">Length</Label>
                               <Input
                                 value={editingItemDraft.length}
+                                placeholder="Optional"
                                 onChange={(e) => setEditingItemDraft((prev) => ({ ...prev, length: e.target.value }))}
                               />
                             </div>
@@ -1075,6 +1077,7 @@ export function TakeoffPage(): React.JSX.Element {
                               <Label className="text-xs text-muted-foreground">Breadth</Label>
                               <Input
                                 value={editingItemDraft.breadth}
+                                placeholder="Optional"
                                 onChange={(e) => setEditingItemDraft((prev) => ({ ...prev, breadth: e.target.value }))}
                               />
                             </div>
@@ -1082,6 +1085,7 @@ export function TakeoffPage(): React.JSX.Element {
                               <Label className="text-xs text-muted-foreground">Height</Label>
                               <Input
                                 value={editingItemDraft.height}
+                                placeholder="Optional"
                                 onChange={(e) => setEditingItemDraft((prev) => ({ ...prev, height: e.target.value }))}
                               />
                             </div>
@@ -1140,17 +1144,15 @@ export function TakeoffPage(): React.JSX.Element {
                                 Set qty {countUi.count}
                               </Button>
                             ) : null}
-                            <Button
-                              type="button"
-                              size="icon-xs"
-                              variant="ghost"
+                            <IconButton
+                              tooltip="Delete item"
                               onClick={() => {
                                 if (!projectId) return
                                 void desktopApi().takeoff.removeItem(item.id).then(() => load(projectId))
                               }}
                             >
                               <Trash2 />
-                            </Button>
+                            </IconButton>
                           </div>
                         </>
                       )}
@@ -1162,6 +1164,7 @@ export function TakeoffPage(): React.JSX.Element {
           </div>
         </ScrollArea>
       </aside>
+      </div>
 
       <Dialog open={addGroupOpen} onOpenChange={setAddGroupOpen}>
         <DialogContent>
@@ -1170,7 +1173,13 @@ export function TakeoffPage(): React.JSX.Element {
           </DialogHeader>
           <div className="grid gap-2">
             <Label htmlFor="group-name">Name</Label>
-            <Input id="group-name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} autoFocus />
+            <Input
+              id="group-name"
+              value={newGroupName}
+              placeholder="e.g. Foundations"
+              onChange={(e) => setNewGroupName(e.target.value)}
+              autoFocus
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAddGroupOpen(false)}>
@@ -1190,9 +1199,20 @@ export function TakeoffPage(): React.JSX.Element {
           </DialogHeader>
           <div className="grid gap-2">
             <Label htmlFor="item-name">Name</Label>
-            <Input id="item-name" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} autoFocus />
+            <Input
+              id="item-name"
+              value={newItemName}
+              placeholder="e.g. Concrete slab"
+              onChange={(e) => setNewItemName(e.target.value)}
+              autoFocus
+            />
             <Label htmlFor="item-qty">Quantity</Label>
-            <Input id="item-qty" value={newItemQuantity} onChange={(e) => setNewItemQuantity(e.target.value)} />
+            <Input
+              id="item-qty"
+              value={newItemQuantity}
+              placeholder="1"
+              onChange={(e) => setNewItemQuantity(e.target.value)}
+            />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setAddItemGroupId(null)}>

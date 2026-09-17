@@ -4,6 +4,7 @@ import { FileUp, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { IconButton } from '@/components/icon-button'
 import type { DocumentRecord } from '../../../shared/types'
 import { isPdfDocument } from '../../../shared/pdf-sheets'
 import { desktopApi, saveDocumentPageCount } from '@/lib/desktop-api'
@@ -124,17 +125,16 @@ export function FilesPage(): React.JSX.Element {
                     <TableCell>{row.fileType}</TableCell>
                     <TableCell>{formatBytes(row.fileSize)}</TableCell>
                     <TableCell>
-                      <Button
-                        type="button"
+                      <IconButton
+                        tooltip="Delete file"
                         size="icon-sm"
-                        variant="ghost"
                         onClick={() => {
                           if (!projectId) return
                           void desktopApi().documents.remove(row.id).then(() => load(projectId))
                         }}
                       >
                         <Trash2 />
-                      </Button>
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}

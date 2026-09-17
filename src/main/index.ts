@@ -5,7 +5,8 @@ import icon from '../../resources/icon.png?asset'
 import { closeDatabase, initializeDatabase } from './pouch'
 import { registerIpcHandlers } from './ipc'
 import { registerFileProtocol, registerFileProtocolScheme } from './protocol'
-import { buildApplicationMenu, registerUpdateIpc, runUpdateCheck } from './menu'
+import { buildApplicationMenu, registerMcpIpc, registerUpdateIpc, runUpdateCheck } from './menu'
+import { stopMcpHttpServer } from './mcp-http'
 
 app.setName('Zigplan')
 registerFileProtocolScheme()
@@ -63,6 +64,7 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(buildApplicationMenu())
   registerIpcHandlers()
   registerUpdateIpc()
+  registerMcpIpc()
 
   try {
     await initializeDatabase()
@@ -89,5 +91,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', () => {
+  void stopMcpHttpServer()
   void closeDatabase()
 })

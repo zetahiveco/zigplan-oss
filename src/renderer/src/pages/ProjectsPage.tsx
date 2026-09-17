@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { IconButton } from '@/components/icon-button'
 import type { ProjectRecord } from '../../../shared/types'
 import { desktopApi } from '@/lib/desktop-api'
 import { formatDate } from '@/lib/format-date'
@@ -146,6 +147,7 @@ export function ProjectsPage(): React.JSX.Element {
                     <Input
                       className="h-7 flex-1"
                       value={editName}
+                      placeholder="Project name"
                       autoFocus
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => setEditName(e.target.value)}
@@ -164,11 +166,8 @@ export function ProjectsPage(): React.JSX.Element {
                       </p>
                     </div>
                   )}
-                  <Button
-                    type="button"
-                    size="icon-xs"
-                    variant="ghost"
-                    title="Rename"
+                  <IconButton
+                    tooltip="Rename"
                     onClick={(e) => {
                       e.stopPropagation()
                       setEditing(project)
@@ -176,19 +175,16 @@ export function ProjectsPage(): React.JSX.Element {
                     }}
                   >
                     <Pencil />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon-xs"
-                    variant="ghost"
-                    title="Delete"
+                  </IconButton>
+                  <IconButton
+                    tooltip="Delete"
                     onClick={(e) => {
                       e.stopPropagation()
                       setDeleting(project)
                     }}
                   >
                     <Trash2 />
-                  </Button>
+                  </IconButton>
                 </div>
               </Card>
             ))}
@@ -206,6 +202,7 @@ export function ProjectsPage(): React.JSX.Element {
             <Input
               id="project-name"
               value={name}
+              placeholder="e.g. Downtown Tower Bid"
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && void createProject()}
               autoFocus

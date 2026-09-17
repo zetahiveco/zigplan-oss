@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Maximize2, Minus, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { IconButton } from '@/components/icon-button'
 import { TakeoffPdfFirstPage } from './pdf-page'
 import { TakeoffPathOverlay, type TakeoffCountMark, type TakeoffItemCountMark, type TakeoffNormRect } from './path-overlay'
 import { TakeoffFindHighlightLayer, takeoffDocumentSupportsFind, useTakeoffFindHighlights } from './find-highlights'
@@ -321,15 +321,15 @@ export function TakeoffDocumentWorkspace({
         )}
       </div>
       <div className="absolute right-3 bottom-3 z-10 flex gap-1 border bg-background/90 p-1 shadow-sm">
-        <Button type="button" size="icon-sm" variant="ghost" onClick={() => zoomAt(scale / ZOOM_FACTOR, 0, 0)}>
+        <IconButton tooltip="Zoom out" size="icon-sm" tooltipSide="top" onClick={() => zoomAt(scale / ZOOM_FACTOR, 0, 0)}>
           <Minus />
-        </Button>
-        <Button type="button" size="icon-sm" variant="ghost" onClick={() => zoomAt(scale * ZOOM_FACTOR, 0, 0)}>
+        </IconButton>
+        <IconButton tooltip="Zoom in" size="icon-sm" tooltipSide="top" onClick={() => zoomAt(scale * ZOOM_FACTOR, 0, 0)}>
           <Plus />
-        </Button>
-        <Button type="button" size="icon-sm" variant="ghost" onClick={resetView}>
+        </IconButton>
+        <IconButton tooltip="Reset view" size="icon-sm" tooltipSide="top" onClick={resetView}>
           <Maximize2 />
-        </Button>
+        </IconButton>
       </div>
     </div>
   )

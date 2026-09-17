@@ -1,6 +1,7 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import {
   addDocument,
+  addEstimateLine,
   saveDocumentScale,
   saveDocumentPageCount,
   copyCostFromProject,
@@ -10,24 +11,32 @@ import {
   createTakeoffGroup,
   createTakeoffItem,
   createVendor,
+  deleteTakeoffPaths,
+  exportEstimateCsv,
+  getEstimate,
   listCost,
   listDocuments,
   listProjects,
   listTakeoff,
+  listTakeoffPaths,
   listVendors,
   removeCostGroup,
   removeCostItem,
   removeDocument,
+  removeEstimateLine,
   removeProject,
   removeTakeoffGroup,
   removeTakeoffItem,
+  removeVendor,
   renameProject,
   updateCostGroup,
   updateCostItem,
+  updateEstimateLine,
   updateTakeoffGroup,
-  updateTakeoffItem
+  updateTakeoffItem,
+  updateVendor
 } from './pouch'
-import type { CostItemRecord, TakeoffItemRecord } from '../shared/types'
+import type { CostItemRecord, EstimateLineRecord, TakeoffItemRecord, VendorRecord } from '../shared/types'
 
 function handleIpc(
   channel: string,
@@ -86,9 +95,26 @@ export function registerIpcHandlers(): void {
     (_event, id: string, data: Partial<TakeoffItemRecord>) => updateTakeoffItem(id, data)
   )
   handleIpc('takeoff:removeItem', (_event, id: string) => removeTakeoffItem(id))
+  handleIpc('takeoff:listPaths', (_event, projectId: string, sheetId: string) =>
+    listTakeoffPaths(projectId, sheetId)
+  )
+  handleIpc(
+    'takeoff:deletePaths',
+    (_event, projectId: string, sheetId: string, pathKeys: string[]) =>
+      deleteTakeoffPaths(projectId, sheetId, pathKeys)
+  )
 
   handleIpc('vendors:list', () => listVendors())
   handleIpc('vendors:create', (_event, name: string) => createVendor(name))
+  handleIpc(
+    'vendors:update',
+    (
+      _event,
+      id: string,
+      data: Partial<Pick<VendorRecord, 'name' | 'address' | 'phone' | 'email' | 'website' | 'notes'>>
+    ) => updateVendor(id, data)
+  )
+  handleIpc('vendors:remove', (_event, id: string) => removeVendor(id))
 
   handleIpc('cost:list', (_event, projectId: string) => listCost(projectId))
   handleIpc(
@@ -121,4 +147,31 @@ export function registerIpcHandlers(): void {
   handleIpc('cost:copyFromProject', (_event, fromProjectId: string, toProjectId: string) =>
     copyCostFromProject(fromProjectId, toProjectId)
   )
+
+  handleIpc('estimate:get', (_event, projectId: string) => getEstimate(projectId))
+  handleIpc(
+    'estimate:addLine',
+    (
+      _event,
+      payload: {
+        projectId: string
+        takeoffItemId: string
+        costItemId: string
+        quantityPerTakeoff: number
+      }
+    ) => addEstimateLine(payload)
+  )
+  handleIpc(
+    'estimate:updateLine',
+    (
+      _event,
+      projectId: string,
+      lineId: string,
+      data: Partial<Pick<EstimateLineRecord, 'quantityPerTakeoff' | 'costItemId'>>
+    ) => updateEstimateLine(projectId, lineId, data)
+  )
+  handleIpc('estimate:removeLine', (_event, projectId: string, lineId: string) =>
+    removeEstimateLine(projectId, lineId)
+  )
+  handleIpc('estimate:exportCsv', (_event, projectId: string) => exportEstimateCsv(projectId))
 }

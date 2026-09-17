@@ -5,7 +5,12 @@ import {
   lookupLatestUpdate,
   skipReleaseForSession
 } from './updates'
-import type { UpdateCheckSource, UpdateStatus } from '../shared/types'
+import {
+  getMcpHttpStatus,
+  startMcpHttpServer,
+  stopMcpHttpServer
+} from './mcp-http'
+import type { McpSetupPayload, UpdateCheckSource, UpdateStatus } from '../shared/types'
 
 function sendStatus(win: BrowserWindow | null, status: UpdateStatus): void {
   if (!win || win.isDestroyed()) return
@@ -14,6 +19,39 @@ function sendStatus(win: BrowserWindow | null, status: UpdateStatus): void {
 
 function focusedWindow(): BrowserWindow | null {
   return BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null
+}
+
+function broadcastMcpSetup(payload: McpSetupPayload): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('mcp:setup', payload)
+  }
+}
+
+function refreshApplicationMenu(): void {
+  Menu.setApplicationMenu(buildApplicationMenu())
+}
+
+async function startMcpFromMenu(): Promise<void> {
+  try {
+    const status = await startMcpHttpServer()
+    refreshApplicationMenu()
+    broadcastMcpSetup({ ...status, showDialog: true })
+  } catch (error) {
+    console.error('[zigplan] Failed to start MCP server', error)
+    const message = error instanceof Error ? error.message : String(error)
+    refreshApplicationMenu()
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('mcp:error', message)
+      }
+    }
+  }
+}
+
+async function stopMcpFromMenu(): Promise<void> {
+  const status = await stopMcpHttpServer()
+  refreshApplicationMenu()
+  broadcastMcpSetup({ ...status, showDialog: false })
 }
 
 export async function runUpdateCheck(
@@ -47,12 +85,28 @@ export async function runUpdateCheck(
 
 export function buildApplicationMenu(): Menu {
   const isMac = process.platform === 'darwin'
+  const mcp = getMcpHttpStatus()
 
   const fileSubmenu: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'Check for Updates…',
       click: (): void => {
         void runUpdateCheck(focusedWindow(), 'manual')
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Start MCP Server',
+      enabled: !mcp.running,
+      click: (): void => {
+        void startMcpFromMenu()
+      }
+    },
+    {
+      label: 'Stop MCP Server',
+      enabled: mcp.running,
+      click: (): void => {
+        void stopMcpFromMenu()
       }
     },
     { type: 'separator' },
@@ -71,6 +125,21 @@ export function buildApplicationMenu(): Menu {
                 label: 'Check for Updates…',
                 click: (): void => {
                   void runUpdateCheck(focusedWindow(), 'manual')
+                }
+              },
+              { type: 'separator' as const },
+              {
+                label: 'Start MCP Server',
+                enabled: !mcp.running,
+                click: (): void => {
+                  void startMcpFromMenu()
+                }
+              },
+              {
+                label: 'Stop MCP Server',
+                enabled: mcp.running,
+                click: (): void => {
+                  void stopMcpFromMenu()
                 }
               },
               { type: 'separator' as const },
@@ -180,5 +249,21 @@ export function registerUpdateIpc(): void {
 
   ipcMain.handle('updates:download', async (_event, url: string) => {
     await shell.openExternal(url)
+  })
+}
+
+export function registerMcpIpc(): void {
+  ipcMain.handle('mcp:status', () => getMcpHttpStatus())
+  ipcMain.handle('mcp:start', async () => {
+    const status = await startMcpHttpServer()
+    refreshApplicationMenu()
+    broadcastMcpSetup({ ...status, showDialog: true })
+    return status
+  })
+  ipcMain.handle('mcp:stop', async () => {
+    const status = await stopMcpHttpServer()
+    refreshApplicationMenu()
+    broadcastMcpSetup({ ...status, showDialog: false })
+    return status
   })
 }

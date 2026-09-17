@@ -2,6 +2,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { UpdateNotifier } from '@/components/UpdateNotifier'
+import { McpSetupDialog } from '@/components/McpSetupDialog'
 import { ProjectsPage } from '@/pages/ProjectsPage'
 import { ProjectShell } from '@/pages/ProjectShell'
 import { TakeoffPage } from '@/pages/TakeoffPage'
@@ -25,6 +26,7 @@ function App(): React.JSX.Element {
         </Routes>
       </HashRouter>
       <UpdateNotifier />
+      <McpSetupDialog />
       <Toaster />
     </TooltipProvider>
   )

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { UpdateStatus, ZigplanApi } from '../shared/types'
+import type { McpSetupPayload, UpdateStatus, ZigplanApi } from '../shared/types'
 
 const api: ZigplanApi = {
   projects: {
@@ -23,11 +23,16 @@ const api: ZigplanApi = {
     removeGroup: (id) => ipcRenderer.invoke('takeoff:removeGroup', id),
     createItem: (payload) => ipcRenderer.invoke('takeoff:createItem', payload),
     updateItem: (id, data) => ipcRenderer.invoke('takeoff:updateItem', id, data),
-    removeItem: (id) => ipcRenderer.invoke('takeoff:removeItem', id)
+    removeItem: (id) => ipcRenderer.invoke('takeoff:removeItem', id),
+    listPaths: (projectId, sheetId) => ipcRenderer.invoke('takeoff:listPaths', projectId, sheetId),
+    deletePaths: (projectId, sheetId, pathKeys) =>
+      ipcRenderer.invoke('takeoff:deletePaths', projectId, sheetId, pathKeys)
   },
   vendors: {
     list: () => ipcRenderer.invoke('vendors:list'),
-    create: (name) => ipcRenderer.invoke('vendors:create', name)
+    create: (name) => ipcRenderer.invoke('vendors:create', name),
+    update: (id, data) => ipcRenderer.invoke('vendors:update', id, data),
+    remove: (id) => ipcRenderer.invoke('vendors:remove', id)
   },
   cost: {
     list: (projectId) => ipcRenderer.invoke('cost:list', projectId),
@@ -40,6 +45,14 @@ const api: ZigplanApi = {
     copyFromProject: (fromProjectId, toProjectId) =>
       ipcRenderer.invoke('cost:copyFromProject', fromProjectId, toProjectId)
   },
+  estimate: {
+    get: (projectId) => ipcRenderer.invoke('estimate:get', projectId),
+    addLine: (payload) => ipcRenderer.invoke('estimate:addLine', payload),
+    updateLine: (projectId, lineId, data) =>
+      ipcRenderer.invoke('estimate:updateLine', projectId, lineId, data),
+    removeLine: (projectId, lineId) => ipcRenderer.invoke('estimate:removeLine', projectId, lineId),
+    exportCsv: (projectId) => ipcRenderer.invoke('estimate:exportCsv', projectId)
+  },
   updates: {
     check: (source = 'manual') => ipcRenderer.invoke('updates:check', source),
     skip: (tag) => ipcRenderer.invoke('updates:skip', tag),
@@ -51,6 +64,29 @@ const api: ZigplanApi = {
       ipcRenderer.on('updates:status', handler)
       return () => {
         ipcRenderer.removeListener('updates:status', handler)
+      }
+    }
+  },
+  mcp: {
+    status: () => ipcRenderer.invoke('mcp:status'),
+    start: () => ipcRenderer.invoke('mcp:start'),
+    stop: () => ipcRenderer.invoke('mcp:stop'),
+    onSetup: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: McpSetupPayload): void => {
+        listener(payload)
+      }
+      ipcRenderer.on('mcp:setup', handler)
+      return () => {
+        ipcRenderer.removeListener('mcp:setup', handler)
+      }
+    },
+    onError: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, message: string): void => {
+        listener(message)
+      }
+      ipcRenderer.on('mcp:error', handler)
+      return () => {
+        ipcRenderer.removeListener('mcp:error', handler)
       }
     }
   }

@@ -12,7 +12,7 @@ const SECTIONS = [
   { to: 'takeoff', label: 'Takeoff', icon: PenTool },
   { to: 'estimation', label: 'Estimation', icon: Calculator },
   { to: 'files', label: 'Files', icon: FolderOpen },
-  { to: 'cost-database', label: 'Cost Database', icon: Database }
+  { to: 'cost-database', label: 'Cost Catalog', icon: Database }
 ] as const
 
 export function ProjectShell(): React.JSX.Element {

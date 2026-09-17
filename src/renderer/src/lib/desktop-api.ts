@@ -1,4 +1,9 @@
-import type { ZigplanApi } from '../../../shared/types'
+import type {
+  CostItemRecord,
+  EstimateLineRecord,
+  TakeoffGroupRecord,
+  ZigplanApi
+} from '../../../shared/types'
 
 export function desktopApi(): ZigplanApi {
   const api = window.api
@@ -21,4 +26,45 @@ export async function saveDocumentScale(id: string, scale: unknown): Promise<voi
     throw new Error('Restart Zigplan to save scale (desktop API is out of date)')
   }
   await save(id, scale)
+}
+
+export type EstimateBundle = {
+  lines: EstimateLineRecord[]
+  takeoffGroups: TakeoffGroupRecord[]
+  costItems: CostItemRecord[]
+}
+
+/** Loads estimate data; falls back if preload is stale (estimate API missing). */
+export async function loadEstimate(projectId: string): Promise<EstimateBundle> {
+  const api = desktopApi()
+  if (typeof api.estimate?.get === 'function') {
+    try {
+      return await api.estimate.get(projectId)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  const [takeoffGroups, cost] = await Promise.all([
+    api.takeoff.list(projectId),
+    api.cost.list(projectId)
+  ])
+  return {
+    lines: [],
+    takeoffGroups,
+    costItems: cost.items
+  }
+}
+
+export function requireEstimateApi(): ZigplanApi['estimate'] {
+  const estimate = desktopApi().estimate
+  if (
+    typeof estimate?.get !== 'function' ||
+    typeof estimate?.addLine !== 'function' ||
+    typeof estimate?.updateLine !== 'function' ||
+    typeof estimate?.removeLine !== 'function' ||
+    typeof estimate?.exportCsv !== 'function'
+  ) {
+    throw new Error('Restart Zigplan to use Estimation (desktop API is out of date)')
+  }
+  return estimate
 }

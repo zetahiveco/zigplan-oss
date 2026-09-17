@@ -8,7 +8,7 @@ on:
       tag:
         description: GitHub release tag to attach binaries to
         required: true
-        default: v1.0-beta
+        default: v1.0.1-beta
 
 permissions:
   contents: write

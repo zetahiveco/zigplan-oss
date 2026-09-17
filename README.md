@@ -14,10 +14,51 @@ The hosted product at [zigplan.com](https://www.zigplan.com) is a separate AI-na
 - **Plan files** — PDF, PNG, JPEG, and SVG drawings stored with the project
 - **Takeoff** — pan, path, rectangle, count, find, and snip tools on the sheet
 - **Scale** — calibrate drawings and compute real lengths and areas
-- **Cost database** — groups, line items, units, prices, and vendors
+- **Cost catalog** — groups, line items, units, prices, and vendors
+- **Estimation** — map cost catalog items to takeoff quantities and download CSV
+- **MCP** — agents in Cursor, Claude Code, OpenCode, and other tools can CRUD projects (except delete), files, takeoff, cost catalog, vendors, and estimates
 - **Offline-first** — [PouchDB](https://pouchdb.com) on disk, no cloud required
 
-Estimation workflows and [MCP](https://modelcontextprotocol.io) (Model Context Protocol) support are on the roadmap so agents and other tools can work with Zigplan projects in a later release.
+## MCP (agents & tools)
+
+### From the Zigplan app (recommended)
+
+1. Open Zigplan.
+2. Choose **File → Start MCP Server** (or **Zigplan → Start MCP Server** on macOS).
+3. A dialog shows Claude Code setup steps — copy the CLI command or JSON.
+4. Keep Zigplan open while agents use MCP. Stop with **File → Stop MCP Server**.
+
+The in-app server listens on `http://127.0.0.1:47821/mcp` and shares the live project database (no second PouchDB lock).
+
+### Claude Code example
+
+```bash
+claude mcp add --transport http zigplan http://127.0.0.1:47821/mcp
+```
+
+Or in MCP settings / `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "zigplan": {
+      "type": "http",
+      "url": "http://127.0.0.1:47821/mcp"
+    }
+  }
+}
+```
+
+### Stdio (repo / without the app UI)
+
+```bash
+pnpm install
+pnpm mcp
+```
+
+Point Cursor / OpenCode at `pnpm --dir /absolute/path/to/zigplan-oss-app mcp`. Optional `ZIGPLAN_DATA_DIR` overrides the data root. Close the desktop app if stdio writes hit a database lock.
+
+**Tools include:** project list/create/rename (**no project delete**), files CRUD, takeoff CRUD plus path list/delete, cost catalog CRUD, vendors CRUD, estimate get/add/update/remove/export CSV.
 
 ## Zigplan.com vs this app
 

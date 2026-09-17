@@ -1,12 +1,13 @@
 import { mkdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { randomUUID } from 'crypto'
-import { app } from 'electron'
 import PouchDB from 'pouchdb'
 import type {
   CostGroupRecord,
   CostItemRecord,
   DocumentRecord,
+  EstimateLineRecord,
+  EstimateRecord,
   ProjectDocument,
   ProjectRecord,
   StoredDocument,
@@ -15,9 +16,20 @@ import type {
   VendorDocument,
   VendorRecord
 } from '../shared/types'
+import { resolveZigplanDataRoot } from '../shared/data-root'
 import { parsePdfPageSheetId } from '../shared/pdf-sheets'
+import {
+  buildTakeoffCountPathsBundle,
+  buildTakeoffPathsBundle,
+  itemCountMarkOverlayKey,
+  itemPathOverlayKey,
+  parseItemCountMarkOverlayKey,
+  parseItemPathOverlayKey,
+  parseTakeoffCountPathsForDocument,
+  parseTakeoffItemPathsForDocument,
+  polygonAreaNorm
+} from '../shared/takeoff-paths'
 
-const DATA_DIR_NAME = 'data'
 const FILES_DIR_NAME = 'files'
 const POUCH_DIR_NAME = 'pouch'
 
@@ -25,7 +37,7 @@ let projectsDb: PouchDB.Database<ProjectDocument> | undefined
 let vendorsDb: PouchDB.Database<VendorDocument> | undefined
 
 export function getDataDirectory(): string {
-  return join(app.getPath('userData'), DATA_DIR_NAME)
+  return resolveZigplanDataRoot()
 }
 
 export function getFilesDirectory(): string {
@@ -46,6 +58,33 @@ function documentUrl(id: string): string {
 
 function documentPrefix(projectId: string): string {
   return `projects/${projectId}/`
+}
+
+function ensureEstimate(doc: ProjectDocument): EstimateRecord {
+  const existing = doc.estimate
+  if (existing && Array.isArray(existing.lines)) {
+    return existing
+  }
+  const createdAt = nowIso()
+  const estimate: EstimateRecord = {
+    id: randomUUID(),
+    lines: [],
+    createdAt,
+    updatedAt: createdAt
+  }
+  doc.estimate = estimate
+  return estimate
+}
+
+function pruneEstimateLines(
+  doc: ProjectDocument,
+  predicate: (line: EstimateLineRecord) => boolean
+): void {
+  if (!doc.estimate || !Array.isArray(doc.estimate.lines)) return
+  const next = doc.estimate.lines.filter((line) => !predicate(line))
+  if (next.length === doc.estimate.lines.length) return
+  doc.estimate.lines = next
+  doc.estimate.updatedAt = nowIso()
 }
 
 function withUrl(document: StoredDocument): DocumentRecord {
@@ -318,7 +357,10 @@ export async function removeTakeoffGroup(id: string): Promise<void> {
   const project = await findProject((doc) => doc.takeoffGroups.some((group) => group.id === id))
   if (!project) return
   await updateProject(project._id, (doc) => {
+    const removed = doc.takeoffGroups.find((group) => group.id === id)
+    const removedItemIds = new Set(removed?.items.map((item) => item.id) ?? [])
     doc.takeoffGroups = doc.takeoffGroups.filter((group) => group.id !== id)
+    pruneEstimateLines(doc, (line) => removedItemIds.has(line.takeoffItemId))
   })
 }
 
@@ -385,6 +427,7 @@ export async function removeTakeoffItem(id: string): Promise<void> {
     for (const group of doc.takeoffGroups) {
       group.items = group.items.filter((item) => item.id !== id)
     }
+    pruneEstimateLines(doc, (line) => line.takeoffItemId === id)
   })
 }
 
@@ -408,6 +451,26 @@ export async function createVendor(name: string): Promise<VendorRecord> {
     createdAt,
     updatedAt: createdAt
   }
+  await vendorsDb.put(doc)
+  return toVendorRecord(doc)
+}
+
+export async function updateVendor(
+  id: string,
+  data: Partial<Pick<VendorRecord, 'name' | 'address' | 'phone' | 'email' | 'website' | 'notes'>>
+): Promise<VendorRecord> {
+  if (!vendorsDb) throw new Error('PouchDB has not been initialized')
+  const doc = await vendorsDb.get(id)
+  if (data.name !== undefined) {
+    const name = data.name.trim()
+    if (name) doc.name = name
+  }
+  if (data.address !== undefined) doc.address = data.address?.trim() || null
+  if (data.phone !== undefined) doc.phone = data.phone?.trim() || null
+  if (data.email !== undefined) doc.email = data.email?.trim() || null
+  if (data.website !== undefined) doc.website = data.website?.trim() || null
+  if (data.notes !== undefined) doc.notes = data.notes?.trim() || null
+  doc.updatedAt = nowIso()
   await vendorsDb.put(doc)
   return toVendorRecord(doc)
 }
@@ -513,6 +576,7 @@ export async function removeCostItem(id: string): Promise<void> {
   if (!project) return
   await updateProject(project._id, (doc) => {
     doc.costItems = doc.costItems.filter((item) => item.id !== id)
+    pruneEstimateLines(doc, (line) => line.costItemId === id)
   })
 }
 
@@ -539,4 +603,259 @@ export async function copyCostFromProject(fromProjectId: string, toProjectId: st
     project.costGroups.push(...groups)
     project.costItems.push(...items)
   })
+}
+
+export async function getEstimate(projectId: string): Promise<{
+  lines: EstimateLineRecord[]
+  takeoffGroups: TakeoffGroupRecord[]
+  costItems: CostItemRecord[]
+}> {
+  const project = await getProject(projectId)
+  const cost = await listCost(projectId)
+  const raw = project.estimate as EstimateRecord | { lines?: unknown } | null | undefined
+  const lines = raw && Array.isArray(raw.lines) ? (raw.lines as EstimateLineRecord[]) : []
+  return {
+    lines,
+    takeoffGroups: Array.isArray(project.takeoffGroups) ? project.takeoffGroups : [],
+    costItems: cost.items
+  }
+}
+
+export async function addEstimateLine(payload: {
+  projectId: string
+  takeoffItemId: string
+  costItemId: string
+  quantityPerTakeoff: number
+}): Promise<EstimateLineRecord> {
+  const quantityPerTakeoff = Number.isFinite(payload.quantityPerTakeoff)
+    ? Math.max(0, payload.quantityPerTakeoff)
+    : 1
+  let created: EstimateLineRecord | null = null
+  await updateProject(payload.projectId, (doc) => {
+    const hasTakeoff = doc.takeoffGroups.some((group) =>
+      group.items.some((item) => item.id === payload.takeoffItemId)
+    )
+    if (!hasTakeoff) throw new Error('Takeoff item not found')
+    if (!doc.costItems.some((item) => item.id === payload.costItemId)) {
+      throw new Error('Cost item not found')
+    }
+    const estimate = ensureEstimate(doc)
+    const existing = estimate.lines.find(
+      (line) =>
+        line.takeoffItemId === payload.takeoffItemId && line.costItemId === payload.costItemId
+    )
+    if (existing) {
+      existing.quantityPerTakeoff = quantityPerTakeoff
+      estimate.updatedAt = nowIso()
+      created = existing
+      return
+    }
+    const line: EstimateLineRecord = {
+      id: randomUUID(),
+      takeoffItemId: payload.takeoffItemId,
+      costItemId: payload.costItemId,
+      quantityPerTakeoff
+    }
+    estimate.lines.push(line)
+    estimate.updatedAt = nowIso()
+    created = line
+  })
+  if (!created) throw new Error('Could not add estimate line')
+  return created
+}
+
+export async function updateEstimateLine(
+  projectId: string,
+  lineId: string,
+  data: Partial<Pick<EstimateLineRecord, 'quantityPerTakeoff' | 'costItemId'>>
+): Promise<EstimateLineRecord> {
+  let updated: EstimateLineRecord | null = null
+  await updateProject(projectId, (doc) => {
+    const estimate = ensureEstimate(doc)
+    const line = estimate.lines.find((entry) => entry.id === lineId)
+    if (!line) throw new Error('Estimate line not found')
+    if (data.costItemId !== undefined) {
+      if (!doc.costItems.some((item) => item.id === data.costItemId)) {
+        throw new Error('Cost item not found')
+      }
+      const duplicate = estimate.lines.some(
+        (entry) =>
+          entry.id !== lineId &&
+          entry.takeoffItemId === line.takeoffItemId &&
+          entry.costItemId === data.costItemId
+      )
+      if (duplicate) throw new Error('Cost item already linked to this takeoff item')
+      line.costItemId = data.costItemId
+    }
+    if (data.quantityPerTakeoff !== undefined) {
+      line.quantityPerTakeoff = Number.isFinite(data.quantityPerTakeoff)
+        ? Math.max(0, data.quantityPerTakeoff)
+        : line.quantityPerTakeoff
+    }
+    estimate.updatedAt = nowIso()
+    updated = { ...line }
+  })
+  if (!updated) throw new Error('Estimate line not found')
+  return updated
+}
+
+export async function removeEstimateLine(projectId: string, lineId: string): Promise<void> {
+  await updateProject(projectId, (doc) => {
+    if (!doc.estimate || !Array.isArray(doc.estimate.lines)) return
+    doc.estimate.lines = doc.estimate.lines.filter((line) => line.id !== lineId)
+    doc.estimate.updatedAt = nowIso()
+  })
+}
+
+export async function exportEstimateCsv(projectId: string): Promise<string> {
+  const { buildEstimateCsv } = await import('../shared/estimate-export')
+  const data = await getEstimate(projectId)
+  return buildEstimateCsv(data.takeoffGroups, data.costItems, data.lines)
+}
+
+export type TakeoffPathEntry = {
+  key: string
+  kind: 'path' | 'tally'
+  itemId: string
+  itemName: string
+  groupName: string
+  index: number
+}
+
+export async function listTakeoffPaths(
+  projectId: string,
+  sheetId: string
+): Promise<TakeoffPathEntry[]> {
+  const groups = await listTakeoff(projectId)
+  const entries: TakeoffPathEntry[] = []
+  for (const group of groups) {
+    for (const item of group.items) {
+      const paths = parseTakeoffItemPathsForDocument(item, sheetId)
+      paths.forEach((_, index) => {
+        entries.push({
+          key: itemPathOverlayKey(item.id, index),
+          kind: 'path',
+          itemId: item.id,
+          itemName: item.name,
+          groupName: group.name,
+          index
+        })
+      })
+      const tallies = parseTakeoffCountPathsForDocument(item.countPaths, sheetId)
+      tallies.forEach((_, index) => {
+        entries.push({
+          key: itemCountMarkOverlayKey(item.id, index),
+          kind: 'tally',
+          itemId: item.id,
+          itemName: item.name,
+          groupName: group.name,
+          index
+        })
+      })
+    }
+  }
+  return entries
+}
+
+/** Delete persisted drawings by overlay keys (same semantics as Takeoff “Delete selected”). */
+export async function deleteTakeoffPaths(
+  projectId: string,
+  sheetId: string,
+  pathKeys: string[]
+): Promise<{ removed: number }> {
+  if (!sheetId || pathKeys.length === 0) return { removed: 0 }
+
+  type Removal = { all: true } | { all: false; indices: Set<number> }
+  const itemRemovals = new Map<string, Removal>()
+  const itemCountRemovals = new Map<string, Set<number>>()
+
+  for (const key of pathKeys) {
+    const countParsed = parseItemCountMarkOverlayKey(key)
+    if (countParsed) {
+      const indices = itemCountRemovals.get(countParsed.itemId) ?? new Set<number>()
+      indices.add(countParsed.index)
+      itemCountRemovals.set(countParsed.itemId, indices)
+      continue
+    }
+    if (!key.startsWith('item:')) continue
+    const parsed = parseItemPathOverlayKey(key)
+    if (!parsed) continue
+    if (parsed.segmentIndex === null) {
+      itemRemovals.set(parsed.itemId, { all: true })
+      continue
+    }
+    const current = itemRemovals.get(parsed.itemId)
+    if (current?.all) continue
+    const indices = current && !current.all ? current.indices : new Set<number>()
+    indices.add(parsed.segmentIndex)
+    itemRemovals.set(parsed.itemId, { all: false, indices })
+  }
+
+  const itemIds = new Set([...itemRemovals.keys(), ...itemCountRemovals.keys()])
+  let removed = 0
+  for (const itemId of itemIds) {
+    const project = await findProject((doc) =>
+      doc.takeoffGroups.some((group) => group.items.some((item) => item.id === itemId))
+    )
+    if (!project || project._id !== projectId) continue
+    const item = project.takeoffGroups.flatMap((g) => g.items).find((entry) => entry.id === itemId)
+    if (!item) continue
+
+    const patch: Partial<
+      Pick<TakeoffItemRecord, 'path' | 'documentId' | 'area' | 'color' | 'countPaths' | 'quantity'>
+    > = {}
+    const pathRemoval = itemRemovals.get(itemId)
+    if (pathRemoval) {
+      if (pathRemoval.all) {
+        patch.path = null
+        patch.documentId = null
+        patch.area = null
+        removed += 1
+      } else {
+        const existing = parseTakeoffItemPathsForDocument(item, sheetId)
+        removed += pathRemoval.indices.size
+        const nextPolys = existing
+          .filter((_, index) => !pathRemoval.indices.has(index))
+          .map((path) => path.points)
+        if (nextPolys.length === 0) {
+          patch.path = null
+          patch.documentId = null
+          patch.area = null
+        } else {
+          patch.path = buildTakeoffPathsBundle(sheetId, nextPolys)
+          patch.documentId = sheetId
+          patch.area = nextPolys.reduce((sum, points) => sum + polygonAreaNorm(points), 0)
+        }
+      }
+    }
+    const countIndices = itemCountRemovals.get(itemId)
+    if (countIndices) {
+      const existing = parseTakeoffCountPathsForDocument(item.countPaths, sheetId)
+      removed += countIndices.size
+      const nextRects = existing.filter((_, index) => !countIndices.has(index))
+      patch.countPaths = nextRects.length > 0 ? buildTakeoffCountPathsBundle(sheetId, nextRects) : null
+      patch.quantity = nextRects.length
+    }
+    await updateTakeoffItem(itemId, patch)
+  }
+  return { removed }
+}
+
+export async function removeVendor(id: string): Promise<void> {
+  if (!vendorsDb) throw new Error('PouchDB has not been initialized')
+  const doc = await vendorsDb.get(id)
+  if (!doc._rev) throw new Error('Vendor is missing a revision')
+  await vendorsDb.remove(doc._id, doc._rev)
+  const projects = await allProjects()
+  for (const project of projects) {
+    let dirty = false
+    for (const item of project.costItems) {
+      if (item.vendorId === id) {
+        item.vendorId = null
+        item.vendorName = null
+        dirty = true
+      }
+    }
+    if (dirty) await putProject(project)
+  }
 }
