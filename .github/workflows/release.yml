@@ -62,10 +62,7 @@ jobs:
       - name: Build Windows
         if: matrix.name == 'windows'
         shell: pwsh
-        run: |
-          pnpm run build
-          pnpm exec electron-builder --win nsis --x64 --publish never
-          node scripts/windows-installer.cjs
+        run: pnpm run build:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -80,9 +77,6 @@ jobs:
             dist/Zigplan-*.zip
             dist/Zigplan-*.AppImage
             dist/Zigplan-*.deb
-            dist/windows-installer/Zigplan-Setup.exe
-            dist/windows-installer/*.nupkg
-            dist/windows-installer/RELEASES
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

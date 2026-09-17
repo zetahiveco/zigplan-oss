@@ -1,90 +1,81 @@
 import { app, shell, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import squirrelStartup from 'electron-squirrel-startup'
 import icon from '../../resources/icon.png?asset'
 import { closeDatabase, initializeDatabase } from './pouch'
 import { registerIpcHandlers } from './ipc'
 import { registerFileProtocol, registerFileProtocolScheme } from './protocol'
 
-if (squirrelStartup) {
-  app.quit()
-} else {
-  startApp()
+registerFileProtocolScheme()
+
+function createWindow(): void {
+  const mainWindow = new BrowserWindow({
+    width: 1440,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 720,
+    show: false,
+    autoHideMenuBar: true,
+    title: 'Zigplan',
+    icon,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  })
+
+  mainWindow.on('ready-to-show', () => {
+    mainWindow.show()
+  })
+
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    void shell.openExternal(details.url)
+    return { action: 'deny' }
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  } else {
+    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+  }
 }
 
-function startApp(): void {
-  registerFileProtocolScheme()
-
-  function createWindow(): void {
-    const mainWindow = new BrowserWindow({
-      width: 1440,
-      height: 900,
-      minWidth: 1100,
-      minHeight: 720,
-      show: false,
-      autoHideMenuBar: true,
-      title: 'Zigplan',
-      icon,
-      webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
-        sandbox: false,
-        contextIsolation: true,
-        nodeIntegration: false
-      }
-    })
-
-    mainWindow.on('ready-to-show', () => {
-      mainWindow.show()
-    })
-
-    mainWindow.webContents.setWindowOpenHandler((details) => {
-      void shell.openExternal(details.url)
-      return { action: 'deny' }
-    })
-
-    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-      mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-    } else {
-      mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+app.whenReady().then(async () => {
+  electronApp.setAppUserModelId('com.zigplan.app')
+  if (process.platform === 'darwin') {
+    const dockIcon = nativeImage.createFromPath(icon)
+    if (!dockIcon.isEmpty()) {
+      app.dock?.setIcon(dockIcon)
     }
   }
+  registerIpcHandlers()
 
-  app.whenReady().then(async () => {
-    electronApp.setAppUserModelId('com.zigplan.app')
-    if (process.platform === 'darwin') {
-      const dockIcon = nativeImage.createFromPath(icon)
-      if (!dockIcon.isEmpty()) {
-        app.dock?.setIcon(dockIcon)
-      }
-    }
-    registerIpcHandlers()
+  try {
+    await initializeDatabase()
+    registerFileProtocol()
+  } catch (error) {
+    console.error('[zigplan] Failed to initialize database', error)
+  }
 
-    try {
-      await initializeDatabase()
-      registerFileProtocol()
-    } catch (error) {
-      console.error('[zigplan] Failed to initialize database', error)
-    }
-
-    app.on('browser-window-created', (_, window) => {
-      optimizer.watchWindowShortcuts(window)
-    })
-
-    createWindow()
-
-    app.on('activate', function () {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    })
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
   })
 
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      app.quit()
-    }
-  })
+  createWindow()
 
-  app.on('before-quit', () => {
-    void closeDatabase()
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-}
+})
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+
+app.on('before-quit', () => {
+  void closeDatabase()
+})

@@ -36,8 +36,8 @@ Installers are attached to each [GitHub Release](https://github.com/zetahiveco/z
 
 | Platform | Package |
 | --- | --- |
-| Windows | `Zigplan-*-win-x64-setup.exe` (NSIS) and `Zigplan-Setup.exe` ([Squirrel / electron-winstaller](https://www.npmjs.com/package/electron-winstaller)) |
-| macOS | `Zigplan-*-mac-universal.dmg` |
+| Windows | `Zigplan-*-win-x64-setup.exe` (NSIS) |
+| macOS | `Zigplan-*-mac-arm64.dmg` / `Zigplan-*-mac-x64.dmg` |
 | Linux | `Zigplan-*-linux-*.AppImage` and `.deb` |
 
 macOS builds are not notarized yet. If Gatekeeper blocks the app, open **System Settings → Privacy & Security** and allow it, or right-click the app and choose **Open**. Windows may show SmartScreen on unsigned builds — choose **More info → Run anyway**.
@@ -70,15 +70,14 @@ pnpm build:mac
 pnpm build:linux
 
 # Windows (run on Windows)
-# NSIS setup.exe plus a Squirrel installer via electron-winstaller
 pnpm build:win
 ```
 
-Windows installers are produced with [electron-winstaller](https://www.npmjs.com/package/electron-winstaller) (Squirrel.Windows) after electron-builder writes `dist/win-unpacked`. GitHub Actions builds Windows, macOS, and Linux on every version tag.
+Windows uses an NSIS installer via [electron-builder](https://www.electron.build/). GitHub Actions builds Windows, macOS, and Linux for each release.
 
 ## Stack
 
-Electron, React, TypeScript, Tailwind CSS, PouchDB, and PDF.js. Packaged with [electron-builder](https://www.electron.build/) and, on Windows, [electron-winstaller](https://www.npmjs.com/package/electron-winstaller).
+Electron, React, TypeScript, Tailwind CSS, PouchDB, and PDF.js. Packaged with [electron-builder](https://www.electron.build/).
 
 ## Contributing
 

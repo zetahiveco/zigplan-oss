@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Windows packaging uses NSIS only; Squirrel / electron-winstaller removed
+
 ### Planned
 
 - Cost estimation workspace (line items tied to takeoff quantities)
@@ -24,7 +28,7 @@ First public release of the free open source Zigplan desktop app.
 - Takeoff tools: pan, path, rectangle, count, find, and snip
 - Drawing scale calibration with length and area quantities
 - Cost database with nested groups, vendors, and copy-between-projects
-- Desktop builds for Windows (NSIS + Squirrel via electron-winstaller), macOS, and Linux
+- Desktop builds for Windows (NSIS), macOS, and Linux
 
 [Unreleased]: https://github.com/zetahiveco/zigplan-oss/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/zetahiveco/zigplan-oss/releases/tag/v1.0.0

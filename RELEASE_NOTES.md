@@ -10,8 +10,8 @@ The hosted AI-native back office remains at [zigplan.com](https://www.zigplan.co
 
 | Platform | File |
 | --- | --- |
-| Windows | `Zigplan-1.0.0-win-x64-setup.exe` (NSIS) and `Zigplan-Setup.exe` (Squirrel / electron-winstaller) |
-| macOS | `Zigplan-1.0.0-mac-universal.dmg` |
+| Windows | `Zigplan-1.0.0-win-x64-setup.exe` (NSIS) |
+| macOS | `Zigplan-1.0.0-mac-arm64.dmg` / `Zigplan-1.0.0-mac-x64.dmg` |
 | Linux | `Zigplan-1.0.0-linux-x86_64.AppImage` and `.deb` |
 
 If GitHub Actions is still publishing assets, refresh the [release page](https://github.com/zetahiveco/zigplan-oss/releases/tag/v1.0.0) in a few minutes.
