@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { UpdateNotifier } from '@/components/UpdateNotifier'
 import { ProjectsPage } from '@/pages/ProjectsPage'
 import { ProjectShell } from '@/pages/ProjectShell'
 import { TakeoffPage } from '@/pages/TakeoffPage'
@@ -23,6 +24,7 @@ function App(): React.JSX.Element {
           </Route>
         </Routes>
       </HashRouter>
+      <UpdateNotifier />
       <Toaster />
     </TooltipProvider>
   )

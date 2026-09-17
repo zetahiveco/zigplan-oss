@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import type { ZigplanApi } from '../shared/types'
+import type { UpdateStatus, ZigplanApi } from '../shared/types'
 
 const api: ZigplanApi = {
   projects: {
@@ -39,6 +39,20 @@ const api: ZigplanApi = {
     removeItem: (id) => ipcRenderer.invoke('cost:removeItem', id),
     copyFromProject: (fromProjectId, toProjectId) =>
       ipcRenderer.invoke('cost:copyFromProject', fromProjectId, toProjectId)
+  },
+  updates: {
+    check: (source = 'manual') => ipcRenderer.invoke('updates:check', source),
+    skip: (tag) => ipcRenderer.invoke('updates:skip', tag),
+    download: (url) => ipcRenderer.invoke('updates:download', url),
+    onStatus: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus): void => {
+        listener(status)
+      }
+      ipcRenderer.on('updates:status', handler)
+      return () => {
+        ipcRenderer.removeListener('updates:status', handler)
+      }
+    }
   }
 }
 

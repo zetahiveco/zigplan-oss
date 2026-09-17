@@ -1,10 +1,11 @@
-import { app, shell, BrowserWindow, nativeImage } from 'electron'
+import { app, shell, BrowserWindow, Menu, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { closeDatabase, initializeDatabase } from './pouch'
 import { registerIpcHandlers } from './ipc'
 import { registerFileProtocol, registerFileProtocolScheme } from './protocol'
+import { buildApplicationMenu, registerUpdateIpc, runUpdateCheck } from './menu'
 
 registerFileProtocolScheme()
 
@@ -15,7 +16,7 @@ function createWindow(): void {
     minWidth: 1100,
     minHeight: 720,
     show: false,
-    autoHideMenuBar: true,
+    autoHideMenuBar: false,
     title: 'Zigplan',
     icon,
     webPreferences: {
@@ -35,6 +36,12 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (!is.dev) {
+      void runUpdateCheck(mainWindow, 'startup')
+    }
+  })
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -50,7 +57,10 @@ app.whenReady().then(async () => {
       app.dock?.setIcon(dockIcon)
     }
   }
+
+  Menu.setApplicationMenu(buildApplicationMenu())
   registerIpcHandlers()
+  registerUpdateIpc()
 
   try {
     await initializeDatabase()

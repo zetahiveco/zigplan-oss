@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Production startup update check against GitHub Releases, with Download / Skip dialog
+- File → Check for Updates (also under the app menu on macOS)
+
 ### Changed
 
 - Windows packaging uses NSIS only; Squirrel / electron-winstaller removed

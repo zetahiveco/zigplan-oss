@@ -105,6 +105,24 @@ export type VendorDocument = {
   updatedAt: string
 }
 
+export type UpdateCheckSource = 'startup' | 'manual'
+
+export type UpdateAvailableInfo = {
+  tag: string
+  version: string
+  name: string
+  htmlUrl: string
+  downloadUrl: string
+  downloadName: string
+}
+
+export type UpdateStatus =
+  | { phase: 'checking'; source: UpdateCheckSource }
+  | { phase: 'latest'; source: UpdateCheckSource; version: string }
+  | { phase: 'available'; source: UpdateCheckSource; update: UpdateAvailableInfo }
+  | { phase: 'error'; source: UpdateCheckSource; message: string }
+  | { phase: 'skipped'; source: UpdateCheckSource; tag: string }
+
 export type ZigplanApi = {
   projects: {
     list: () => Promise<ProjectRecord[]>
@@ -189,5 +207,11 @@ export type ZigplanApi = {
     ) => Promise<void>
     removeItem: (id: string) => Promise<void>
     copyFromProject: (fromProjectId: string, toProjectId: string) => Promise<void>
+  }
+  updates: {
+    check: (source?: UpdateCheckSource) => Promise<void>
+    skip: (tag: string) => Promise<string | null>
+    download: (url: string) => Promise<void>
+    onStatus: (listener: (status: UpdateStatus) => void) => () => void
   }
 }
