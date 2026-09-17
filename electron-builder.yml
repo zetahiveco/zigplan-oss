@@ -34,8 +34,10 @@ mac:
   category: public.app-category.business
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSDocumentsFolderUsageDescription: Zigplan stores project files and takeoff drawings on this Mac.
-    - NSDownloadsFolderUsageDescription: Zigplan can save exported files to Downloads.
+    CFBundleName: Zigplan
+    CFBundleDisplayName: Zigplan
+    NSDocumentsFolderUsageDescription: Zigplan stores project files and takeoff drawings on this Mac.
+    NSDownloadsFolderUsageDescription: Zigplan can save exported files to Downloads.
   notarize: false
   target:
     - target: dmg

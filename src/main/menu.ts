@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, shell } from 'electron'
+import { BrowserWindow, Menu, ipcMain, shell } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import {
   getSkippedReleaseTag,
@@ -63,7 +63,7 @@ export function buildApplicationMenu(): Menu {
     ...(isMac
       ? [
           {
-            label: app.name,
+            label: 'Zigplan',
             submenu: [
               { role: 'about' as const },
               { type: 'separator' as const },

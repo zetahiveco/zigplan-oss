@@ -7,6 +7,7 @@ import { registerIpcHandlers } from './ipc'
 import { registerFileProtocol, registerFileProtocolScheme } from './protocol'
 import { buildApplicationMenu, registerUpdateIpc, runUpdateCheck } from './menu'
 
+app.setName('Zigplan')
 registerFileProtocolScheme()
 
 function createWindow(): void {
@@ -50,6 +51,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(async () => {
+  app.setName('Zigplan')
   electronApp.setAppUserModelId('com.zigplan.app')
   if (process.platform === 'darwin') {
     const dockIcon = nativeImage.createFromPath(icon)
