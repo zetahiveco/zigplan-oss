@@ -17,6 +17,13 @@ async function main() {
     )
   }
 
+  // NuGet packaging requires LICENSE next to the unpacked app.
+  const licenseSrc = path.join(root, 'LICENSE')
+  const licenseDest = path.join(appDirectory, 'LICENSE')
+  if (fs.existsSync(licenseSrc) && !fs.existsSync(licenseDest)) {
+    fs.copyFileSync(licenseSrc, licenseDest)
+  }
+
   console.log('[zigplan] Creating Squirrel.Windows installer with electron-winstaller')
 
   await createWindowsInstaller({
