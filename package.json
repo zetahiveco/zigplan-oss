@@ -1,6 +1,6 @@
 {
   "name": "zigplan",
-  "version": "1.0.0",
+  "version": "1.0.0-beta",
   "description": "Free open source construction takeoff and quantity estimation",
   "main": "./out/main/index.js",
   "author": "Zetahive Technologies Private Limited",

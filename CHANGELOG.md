@@ -7,24 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Production startup update check against GitHub Releases, with Download / Skip dialog
-- File → Check for Updates (also under the app menu on macOS)
-
-### Changed
-
-- Windows packaging uses NSIS only; Squirrel / electron-winstaller removed
-
 ### Planned
 
 - Cost estimation workspace (line items tied to takeoff quantities)
 - MCP (Model Context Protocol) so agents and external tools can read and write Zigplan projects
 - Signed and notarized installers
 
-## [1.0.0] - 2026-09-17
+## [1.0.0-beta] - 2026-09-17
 
-First public release of the free open source Zigplan desktop app.
+First public **Beta / Early Access** release of the free open source Zigplan desktop app.
 
 ### Added
 
@@ -34,6 +25,12 @@ First public release of the free open source Zigplan desktop app.
 - Drawing scale calibration with length and area quantities
 - Cost database with nested groups, vendors, and copy-between-projects
 - Desktop builds for Windows (NSIS), macOS, and Linux
+- GitHub Releases update checks (startup toast + File → Check for Updates)
+- macOS menu bar name patch for Zigplan in development
 
-[Unreleased]: https://github.com/zetahiveco/zigplan-oss/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/zetahiveco/zigplan-oss/releases/tag/v1.0.0
+### Changed
+
+- Windows packaging uses NSIS only (Squirrel / electron-winstaller removed)
+
+[Unreleased]: https://github.com/zetahiveco/zigplan-oss/compare/v1.0-beta...HEAD
+[1.0.0-beta]: https://github.com/zetahiveco/zigplan-oss/releases/tag/v1.0-beta
